@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Insider Data Exfiltration – Animation + Voice</title>
+  <style>
+    :root{
+      --bg:#f5f5f7;
+      --card:#ffffff;
+      --border:#e5e7eb;
+      --text:#111827;
+      --muted:#6b7280;
+      --accent:#0ea5e9;
+      --accent2:#22c55e;
+      --highlight:#1d4ed8;
+    }
+    *{box-sizing:border-box;scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:radial-gradient(circle at top,#e0f2fe 0,#f5f5f7 40%,#eef2ff 100%);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:var(--text);
+      padding:20px;
+    }
+    .card{
+      background:var(--card);
+      border-radius:22px;
+      border:1px solid var(--border);
+      box-shadow:0 20px 45px rgba(15,23,42,.06);
+      max-width:1160px;
+      width:100%;
+      padding:24px 26px 22px;
+    }
+
+    /* Header */
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    @media (max-width:820px){
+      .header{flex-direction:column;align-items:flex-start;}
+    }
+    .left-head{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+    .logo{
+      width:52px;
+      height:52px;
+      border-radius:999px;
+      object-fit:contain;
+      background:#fff;
+      border:1px solid var(--border);
+    }
+    .title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .badge{
+      width:38px;
+      height:38px;
+      border-radius:999px;
+      background:linear-gradient(135deg,#0ea5e9,#22c55e);
+      color:white;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      font-size:17px;
+    }
+    .title-text h1{
+      margin:0 0 3px;
+      font-size:22px;
+    }
+    .title-text p{
+      margin:0;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .meta{
+      font-size:12px;
+      color:var(--muted);
+      text-align:right;
+    }
+    .meta strong{color:var(--accent);}
+
+    /* Narrator row (new, clean style) */
+    .narrator-row{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      margin-bottom:14px;
+    }
+    @media (max-width:900px){
+      .narrator-row{flex-direction:column;align-items:flex-start;}
+    }
+
+    .n-avatar-wrap{
+      position:relative;
+      width:70px;
+      height:70px;
+      flex-shrink:0;
+    }
+    .n-avatar{
+      width:70px;
+      height:70px;
+      border-radius:999px;
+      background:radial-gradient(circle at 30% 20%,#f9fafb,#0ea5e9);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#ffffff;
+      font-size:30px;
+      box-shadow:0 12px 24px rgba(37,99,235,.35);
+      position:relative;
+      z-index:2;
+      border:2px solid #ffffff;
+    }
+    .n-avatar-ring{
+      position:absolute;
+      inset:-4px;
+      border-radius:999px;
+      border:2px solid rgba(37,99,235,.25);
+      z-index:1;
+      opacity:0;
+    }
+
+    /* pulse when playing */
+    @keyframes pulse-ring{
+      0%{transform:scale(1);opacity:.7;}
+      100%{transform:scale(1.25);opacity:0;}
+    }
+    .root.is-playing .n-avatar-ring{
+      opacity:1;
+      animation:pulse-ring 0.9s infinite;
+    }
+
+    .speech-bubble{
+      flex:1;
+      background:#ffffff;
+      border-radius:16px;
+      border:1px solid #e5e7eb;
+      padding:10px 12px;
+      font-size:13px;
+      color:var(--muted);
+      position:relative;
+      box-shadow:0 10px 22px rgba(148,163,184,.18);
+    }
+    .speech-bubble::before{
+      content:"";
+      position:absolute;
+      left:18px;
+      bottom:-10px;
+      width:18px;
+      height:18px;
+      background:#ffffff;
+      border-left:1px solid #e5e7eb;
+      border-bottom:1px solid #e5e7eb;
+      transform:rotate(45deg);
+    }
+    .speech-title{
+      font-size:12px;
+      font-weight:600;
+      color:#0f172a;
+      margin-bottom:4px;
+    }
+
+    /* Diagram */
+    .diagram{
+      margin-top:4px;
+      padding:20px 14px 18px;
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:#f9fafb;
+      position:relative;
+      overflow:hidden;
+      min-height:260px;
+    }
+    .diagram-label{
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:14px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .nodes-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:22px;
+      margin-bottom:22px;
+      position:relative;
+      z-index:2;
+    }
+    .node{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:8px;
+    }
+    .node-circle{
+      width:120px;
+      height:120px;
+      border-radius:999px;
+      background:#ffffff;
+      border:1px solid var(--border);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      box-shadow:0 10px 24px rgba(148,163,184,.2);
+      position:relative;
+      z-index:3;
+      transition:
+        transform .25s ease,
+        box-shadow .25s ease,
+        border-color .25s ease,
+        background-color .25s ease;
+    }
+    .node-icon{
+      width:38px;
+      height:38px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      font-weight:700;
+      color:white;
+    }
+    .node-icon.victim{background:var(--accent);}
+    .node-icon.attacker{background:#f97316;}
+    .node-icon.monitor{background:var(--accent2);}
+    .node-name{
+      font-size:14px;
+      font-weight:600;
+    }
+    .node-ip{
+      font-size:12px;
+      color:var(--muted);
+      text-align:center;
+      max-width:150px;
+    }
+
+    .monitor-row{
+      display:flex;
+      justify-content:center;
+      margin-top:10px;
+      position:relative;
+      z-index:2;
+    }
+
+    /* Highlight states */
+    .node-circle.highlight{
+      transform:scale(1.08);
+      border-color:var(--highlight);
+      box-shadow:0 14px 32px rgba(37,99,235,.35);
+      background:#eff6ff;
+    }
+
+    /* Timeline */
+    .timeline{
+      margin-top:16px;
+      padding-top:12px;
+      border-top:1px dashed var(--border);
+    }
+    .steps{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .step-dot{
+      width:24px;
+      height:24px;
+      border-radius:999px;
+      border:1px solid #cbd5f5;
+      background:#eff6ff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      color:#1d4ed8;
+      opacity:.4;
+      transition:all .25s ease;
+    }
+    .step-dot.active{
+      opacity:1;
+      background:#1d4ed8;
+      color:white;
+      transform:scale(1.05);
+    }
+    .step-label{
+      font-size:11px;
+      color:var(--muted);
+      text-align:center;
+      margin-top:4px;
+      max-width:110px;
+    }
+
+    .timeline-bar{
+      position:relative;
+      height:5px;
+      border-radius:999px;
+      background:#e5e7eb;
+      overflow:hidden;
+    }
+    .timeline-fill{
+      position:absolute;
+      inset:0;
+      width:0%;
+      background:linear-gradient(90deg,#0ea5e9,#22c55e);
+      transition:width .3s ease;
+    }
+
+    .caption{
+      margin-top:10px;
+      font-size:13px;
+      color:var(--muted);
+      min-height:38px;
+    }
+
+    /* Controls */
+    .controls{
+      margin-top:12px;
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+    }
+    .btn{
+      border-radius:999px;
+      border:none;
+      padding:7px 16px;
+      font-size:12px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:linear-gradient(135deg,#0ea5e9,#22c55e);
+      color:white;
+      box-shadow:0 8px 18px rgba(14,165,233,.35);
+      transition:transform .15s ease,box-shadow .15s ease,filter .15s ease;
+    }
+    .btn.secondary{
+      background:#ffffff;
+      color:var(--muted);
+      border:1px solid var(--border);
+      box-shadow:none;
+    }
+    .btn span.icon{font-size:13px;}
+    .btn:hover{
+      transform:translateY(-1px);
+      filter:brightness(1.03);
+    }
+    .btn:active{
+      transform:translateY(0);
+      box-shadow:0 5px 12px rgba(15,23,42,.12);
+    }
+
+    audio{display:none;}
+  </style>
+</head>
+<body>
+  <div class="card root" id="root">
+    <!-- AUDIO -->
+    <audio id="narration" src="narration.mp3"></audio>
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="left-head">
+        <img src="logo.png" alt="University logo" class="logo">
+        <div class="title">
+          <div class="badge">DF</div>
+          <div class="title-text">
+            <h1>Insider Data Exfiltration 🔐</h1>
+            <p>Animated incident story with AI narration and DFIR timeline.</p>
+          </div>
+        </div>
+      </div>
+      <div class="meta">
+        Scenario: <strong>Insider misuse</strong><br/>
+        Victim: 192.168.50.17 · Attacker: 192.168.50.18<br/>
+        Monitor: 192.168.50.15 (UBU)
+      </div>
+    </div>
+
+    <!-- NARRATOR ROW (avatar + bubble) -->
+    <div class="narrator-row">
+      <div class="n-avatar-wrap">
+        <div class="n-avatar-ring"></div>
+        <div class="n-avatar">🎧</div>
+      </div>
+      <div class="speech-bubble">
+        <div class="speech-title">AI Narrator</div>
+        <div>
+          This animation walks through our insider data theft scenario – from the victim opening <strong>store.db</strong>,
+          to the HTTP POST exfiltration, to Wireshark detection and final DFIR evidence correlation.
+        </div>
+      </div>
+    </div>
+
+    <!-- DIAGRAM -->
+    <div class="diagram">
+      <div class="diagram-label">
+        <span>Network view 🌐</span>
+        <span>Sensitive data leaving via HTTP POST</span>
+      </div>
+
+      <div class="nodes-row">
+        <div class="node">
+          <div class="node-circle victim-node">
+            <div class="node-icon victim">💻</div>
+            <div class="node-name">Victim</div>
+            <div class="node-ip">store.db · 192.168.50.17</div>
+          </div>
+        </div>
+
+        <div class="node">
+          <div class="node-circle attacker-node">
+            <div class="node-icon attacker">🧑‍💻</div>
+            <div class="node-name">Attacker</div>
+            <div class="node-ip">Python :8000 · 192.168.50.18</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="monitor-row">
+        <div class="node">
+          <div class="node-circle monitor-node">
+            <div class="node-icon monitor">🕵️‍♀️</div>
+            <div class="node-name">Monitor</div>
+            <div class="node-ip">Wireshark · 192.168.50.20</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="timeline">
+      <div class="steps" id="steps">
+        <div style="text-align:center;">
+          <div class="step-dot active" data-step="0">1</div>
+          <div class="step-label">Victim opens & copies file 📁</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="step-dot" data-step="1">2</div>
+          <div class="step-label">HTTP POST to attacker 🚀</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="step-dot" data-step="2">3</div>
+          <div class="step-label">Monitor sees traffic 👀</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="step-dot" data-step="3">4</div>
+          <div class="step-label">Hashes & Chain of Custody ✅</div>
+        </div>
+      </div>
+
+      <div class="timeline-bar">
+        <div class="timeline-fill" id="timelineFill"></div>
+      </div>
+
+      <div class="caption" id="caption">
+        1) The incident begins on the victim machine, where an insider opens and copies the sensitive file <strong>store.db</strong>. 📁
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <button class="btn secondary" type="button" id="btnReset">
+        <span class="icon">⟲</span> Reset
+      </button>
+      <button class="btn" type="button" id="btnPlay">
+        <span class="icon">▶</span> Play with voice
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const root        = document.getElementById('root');
+      const audio       = document.getElementById('narration');
+      const dots        = Array.from(document.querySelectorAll('.step-dot'));
+      const caption     = document.getElementById('caption');
+      const fill        = document.getElementById('timelineFill');
+      const btnPlay     = document.getElementById('btnPlay');
+      const btnReset    = document.getElementById('btnReset');
+
+      const victimNode  = document.querySelector('.victim-node');
+      const attackerNode= document.querySelector('.attacker-node');
+      const monitorNode = document.querySelector('.monitor-node');
+
+      const texts = [
+        "1) The incident begins on the victim machine, where an insider opens and copies the sensitive file <strong>store.db</strong>. 📁",
+        "2) Immediately after, the file is transferred to the attacker using an <strong>HTTP POST</strong> request over port 8000. 🚀",
+        "3) At the same moment, the monitor system detects the unusual traffic in <strong>Wireshark</strong> and captures the network evidence. 👀",
+        "4) Finally, the DFIR team verifies the <strong>SHA-256</strong> hashes and documents everything in the <strong>Chain of Custody</strong>. ✅"
+      ];
+
+      const TOTAL_STEPS = texts.length;
+      let isPlaying = false;
+
+      function clearHighlights(){
+        victimNode.classList.remove('highlight');
+        attackerNode.classList.remove('highlight');
+        monitorNode.classList.remove('highlight');
+      }
+
+      function applyHighlights(step){
+        clearHighlights();
+        if(step === 0){
+          victimNode.classList.add('highlight');
+        }else if(step === 1){
+          victimNode.classList.add('highlight');
+          attackerNode.classList.add('highlight');
+        }else if(step === 2){
+          monitorNode.classList.add('highlight');
+        }else if(step === 3){
+          victimNode.classList.add('highlight');
+          attackerNode.classList.add('highlight');
+          monitorNode.classList.add('highlight');
+        }
+      }
+
+      function setStep(i){
+        dots.forEach((d,idx)=>{
+          d.classList.toggle('active', idx === i);
+        });
+        const pct = (i/(TOTAL_STEPS-1))*100;
+        fill.style.width = pct + '%';
+        caption.innerHTML = texts[i];
+        applyHighlights(i);
+      }
+
+      function reset(){
+        isPlaying = false;
+        root.classList.remove('is-playing');
+        audio.pause();
+        audio.currentTime = 0;
+        setStep(0);
+      }
+
+      function syncWithAudio(){
+        if(!isPlaying) return;
+        if(!audio.duration || isNaN(audio.duration)) return;
+
+        const frac = audio.currentTime / audio.duration;
+        let stepIndex = Math.floor(frac * TOTAL_STEPS);
+        if(stepIndex < 0) stepIndex = 0;
+        if(stepIndex >= TOTAL_STEPS) stepIndex = TOTAL_STEPS - 1;
+        setStep(stepIndex);
+      }
+
+      btnPlay.addEventListener('click', ()=>{
+        reset();
+        isPlaying = true;
+        root.classList.add('is-playing');
+        audio.play().catch(()=>{});
+      });
+
+      btnReset.addEventListener('click', reset);
+
+      dots.forEach((dot,idx)=>{
+        dot.addEventListener('click', ()=>{
+          isPlaying = false;
+          root.classList.remove('is-playing');
+          audio.pause();
+          setStep(idx);
+        });
+      });
+
+      audio.addEventListener('timeupdate', syncWithAudio);
+
+      audio.addEventListener('ended', ()=>{
+        isPlaying = false;
+        root.classList.remove('is-playing');
+        setStep(TOTAL_STEPS - 1);
+      });
+
+      setStep(0);
+    })();
+  </script>
+</body>
+</html>
